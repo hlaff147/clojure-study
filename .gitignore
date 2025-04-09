@@ -1,0 +1,55 @@
+/target
+/classes
+/checkouts
+profiles.clj
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+/.lein-*
+/.nrepl-port
+/.prepl-port
+.hgignore
+.hg/
+
+# Clojure-specific ignores
+/.nrepl-port
+/.cpcache/
+/.lsp/
+/.clj-kondo/
+/.shadow-cljs/
+**/target/
+**/classes/
+**/checkouts/
+
+# Leiningen
+/.lein-*
+/.lein-failures
+/.lein-repl-history
+/project.clj.history
+
+# Deps.edn
+/.cljs/
+/.clj/
+/.rebel_readline_history
+
+# IDE/Editor
+/.idea
+/.vscode
+/.calva
+/.cursive
+*.iml
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temp files
+*~
+*.swp
+*.swo
