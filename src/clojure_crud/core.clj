@@ -7,44 +7,9 @@
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.coercion :as coercion]
             [muuntaja.core :as m]
-            [integrant.core :as ig]))
+            [integrant.core :as ig]
+            [clojure-crud.controller.item-controller :as controller]))
 
-;; In-memory database
-(defonce items (atom {}))
-
-;; Handlers
-(defn get-items [_]
-  {:status 200 :body (vals @items)})
-
-(defn get-item [{:keys [parameters]}]
-  (let [id (-> parameters :path :id)
-        item (get @items id)]
-    (if item
-      {:status 200 :body item}
-      {:status 404 :body {:error "Not found"}})))
-
-(defn create-item [{:keys [parameters]}]
-  (let [id (str (random-uuid))
-        item (-> parameters :body (assoc :id id))]
-    (swap! items assoc id item)
-    {:status 201 :body item}))
-
-(defn update-item [{:keys [parameters]}]
-  (let [id (-> parameters :path :id)
-        item (-> parameters :body (assoc :id id))]
-    (if (contains? @items id)
-      (do (swap! items assoc id item)
-          {:status 200 :body item})
-      {:status 404 :body {:error "Not found"}})))
-
-(defn delete-item [{:keys [parameters]}]
-  (let [id (-> parameters :path :id)]
-    (if (contains? @items id)
-      (do (swap! items dissoc id)
-          {:status 204 :body nil})
-      {:status 404 :body {:error "Not found"}})))
-
-;; Router
 (def router
   (ring/router
    [["/swagger.json"
@@ -57,30 +22,38 @@
 
      [""
       {:get {:summary "Get all items"
-             :handler get-items}
+             :responses {200 {:body vector?}}
+             :handler controller/get-items}
        :post {:summary "Create new item"
-              :handler create-item}}]
+              :parameters {:body map?}
+              :responses {201 {:body map?}}
+              :handler controller/create-item}}]
 
      ["/:id"
       {:get {:summary "Get item by id"
              :parameters {:path {:id string?}}
-             :handler get-item}
+             :responses {200 {:body map?}
+                         404 {:body map?}}
+             :handler controller/get-item}
        :put {:summary "Update item"
              :parameters {:path {:id string?}
                           :body map?}
-             :handler update-item}
+             :responses {200 {:body map?}
+                         404 {:body map?}}
+             :handler controller/update-item}
        :delete {:summary "Delete item"
                 :parameters {:path {:id string?}}
-                :handler delete-item}}]]]
+                :responses {204 {:body nil?}
+                            404 {:body map?}}
+                :handler controller/delete-item}}]]]
    {:data {:coercion reitit.coercion.spec/coercion
-           :muuntaja m/instance
+           :muuntaja (m/create)
            :middleware [muuntaja/format-negotiate-middleware
                         muuntaja/format-response-middleware
                         muuntaja/format-request-middleware
                         coercion/coerce-request-middleware
                         coercion/coerce-response-middleware]}}))
 
-;; App
 (def app
   (ring/ring-handler
    router
@@ -88,7 +61,6 @@
     (swagger-ui/create-swagger-ui-handler {:path "/"})
     (ring/create-default-handler))))
 
-;; System
 (defmethod ig/init-key :server [_ {:keys [handler port]}]
   (println (str "Server running on http://localhost:" port))
   (jetty/run-jetty handler {:port port :join? false}))
@@ -97,8 +69,7 @@
   (.stop server))
 
 (def system
-  {:server {:handler app :port 3000}})
+  {:server {:handler app :port 3000}}) 
 
-;; Main
 (defn -main []
   (ig/init system))
